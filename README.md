@@ -6,6 +6,8 @@ gotrace annotates function calls in go source files with log statements on entry
     Usage of gotrace:
       -exits: show function exits
       -exported: only annotate exported functions
+      -prefix="\t": log prefix
+	  
 
 
 TODO:
