@@ -14,11 +14,20 @@ import (
 	"text/template"
 )
 
-const (
+var (
+	importStmt = `
+import __log "github.com/jbardin/gotrace/log"
+`
+
+	setup = `
+var __tracelog = __log.New("stderr", "%s ")
+`
+
 	tmpl = `
-log.Printf("TRACE: {{.fname}}({{.formatters}})\n", {{.args}})
+__traceCount := __log.Next()
+__tracelog.Printf("[%d] {{.fname}}({{.formatters}}) \n", __traceCount, {{.args}})
 {{ if .exit }}defer func() {
-	log.Println("TRACE: exiting {{.fname}}")
+	__tracelog.Printf("[%d] {{.fname}} exited\n", __traceCount)
 }(){{ end }}
 `
 )
@@ -32,6 +41,7 @@ var (
 	funcTemplate *template.Template
 	showExit     bool
 	exportedOnly bool
+	prefix       string
 )
 
 // return n '%v's for formatting
@@ -131,6 +141,9 @@ func annotate(file string) {
 
 	var edits edits
 
+	// insert our import directly after the package line
+	edits = append(edits, edit{pos: int(f.Name.End()), val: []byte(importStmt)})
+
 	ast.Inspect(f, edits.inspect)
 
 	var buf bytes.Buffer
@@ -149,6 +162,9 @@ func annotate(file string) {
 	}
 	out = append(out, data[pos:]...)
 
+	// it's easier to append the setup code at the end
+	out = append(out, []byte(setup)...)
+
 	src, err := format.Source(out)
 	if err != nil {
 		panic(err)
@@ -163,12 +179,15 @@ func init() {
 func main() {
 	flag.BoolVar(&showExit, "exits", false, "show function exits")
 	flag.BoolVar(&exportedOnly, "exported", false, "only annotate exported functions")
+	flag.StringVar(&prefix, "prefix", "\t", "log prefix")
 	flag.Parse()
 
 	if flag.NArg() < 1 {
 		fmt.Println("missing file name")
 		os.Exit(1)
 	}
+
+	setup = fmt.Sprintf(setup, prefix)
 
 	annotate(flag.Arg(0))
 }

@@ -11,5 +11,3 @@ gotrace annotates function calls in go source files with log statements on entry
 TODO:
 - rewrite multiple files at a time
 - name function literals
-- automatically fix missing "log" imports
-- create a custom logger, with configuration options
