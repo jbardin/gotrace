@@ -9,7 +9,6 @@ gotrace annotates function calls in go source files with log statements on entry
       -prefix="\t": log prefix
 	  
 
-
 TODO:
 - rewrite multiple files at a time
 - name function literals

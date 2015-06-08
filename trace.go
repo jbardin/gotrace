@@ -20,14 +20,14 @@ import __log "github.com/jbardin/gotrace/log"
 `
 
 	setup = `
-var __tracelog = __log.New("stderr", "%s ")
+var _ = __log.Setup("stderr", "%s ")
 `
 
 	tmpl = `
 __traceCount := __log.Next()
-__tracelog.Printf("[%d] {{.fname}}({{.formatters}}) \n", __traceCount, {{.args}})
+__log.L.Printf("[%d] {{.fname}}({{.formatters}}) \n", __traceCount, {{.args}})
 {{ if .exit }}defer func() {
-	__tracelog.Printf("[%d] {{.fname}} exited\n", __traceCount)
+	__log.L.Printf("[%d] {{.fname}} exited\n", __traceCount)
 }(){{ end }}
 `
 )
