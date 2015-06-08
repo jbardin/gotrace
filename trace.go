@@ -147,7 +147,7 @@ func annotate(file string) {
 	fset := token.NewFileSet()
 	f, err := parser.ParseFile(fset, file, nil, parser.ParseComments)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	for _, imp := range f.Imports {
@@ -170,7 +170,7 @@ func annotate(file string) {
 
 	var buf bytes.Buffer
 	if err := format.Node(&buf, fset, f); err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	data := buf.Bytes()
@@ -189,7 +189,7 @@ func annotate(file string) {
 
 	src, err := format.Source(out)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	if !writeFiles {
