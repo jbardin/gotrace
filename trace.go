@@ -24,7 +24,7 @@ import __log "github.com/jbardin/gotrace/log"
 `
 
 	setup = `
-var _ = __log.Setup("stderr", "%s ")
+var _ = __log.Setup("stderr", "%s")
 `
 
 	tmpl = `
