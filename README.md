@@ -6,6 +6,8 @@ gotrace annotates function calls in go source files with log statements on entry
 	gotrace
 	-exported
 			only annotate exported functions
+    -filter string
+        	only annotate functions matching the regular expression (default ".")
 	-package
 			show package name prefix on function calls
 	-prefix string
@@ -14,6 +16,3 @@ gotrace annotates function calls in go source files with log statements on entry
 			show function return
 	-w	re-write files in place
 
-TODO:
-- name function literals
-- output filters

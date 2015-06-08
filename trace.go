@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"regexp"
 	"strings"
 	"text/template"
 )
@@ -43,6 +44,9 @@ var (
 	prefix       string
 	showPackage  bool
 	writeFiles   bool
+	filter       string
+
+	filterRE *regexp.Regexp
 )
 
 // return n '%#v's for formatting
@@ -138,6 +142,10 @@ func (e *editList) inspect(node ast.Node) bool {
 		funcName = e.packageName + "." + funcName
 	}
 
+	if !filterRE.MatchString(funcName) {
+		return true
+	}
+
 	e.Add(int(body.Lbrace), debugCall(funcName, paramNames(funcType.Params)...))
 
 	return true
@@ -213,6 +221,7 @@ func main() {
 	flag.StringVar(&prefix, "prefix", "\t", "log prefix")
 	flag.BoolVar(&showPackage, "package", false, "show package name prefix on function calls")
 	flag.BoolVar(&writeFiles, "w", false, "re-write files in place")
+	flag.StringVar(&filter, "filter", ".", "only annotate functions matching the regular expression")
 	flag.Parse()
 
 	if flag.NArg() < 1 {
@@ -221,6 +230,12 @@ func main() {
 	}
 
 	setup = fmt.Sprintf(setup, prefix)
+
+	var err error
+	filterRE, err = regexp.Compile(filter)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	for _, file := range flag.Args() {
 		annotate(file)
