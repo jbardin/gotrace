@@ -8,6 +8,7 @@ import (
 	"go/format"
 	"go/parser"
 	"go/token"
+	"io/ioutil"
 	"log"
 	"os"
 	"strings"
@@ -15,6 +16,9 @@ import (
 )
 
 var (
+	importName = "__log"
+	importPath = `"github.com/jbardin/gotrace/log"`
+
 	importStmt = `
 import __log "github.com/jbardin/gotrace/log"
 `
@@ -24,20 +28,21 @@ var _ = __log.Setup("stderr", "%s ")
 `
 
 	tmpl = `
-__traceCount := __log.Next()
-__log.L.Printf("[%d] {{.fname}}({{.formatters}}) \n", __traceCount, {{.args}})
-{{ if .exit }}defer func() {
-	__log.L.Printf("[%d] {{.fname}} exited\n", __traceCount)
+__traceID := __log.Next()
+__log.L.Printf("[%d] {{.fname}}({{.formatters}}) \n", __traceID, {{.args}})
+{{ if .return }}defer func() {
+	__log.L.Printf("[%d] {{.fname}} returned\n", __traceID)
 }(){{ end }}
 `
 )
 
 var (
 	funcTemplate *template.Template
-	showExit     bool
+	showReturn   bool
 	exportedOnly bool
 	prefix       string
 	showPackage  bool
+	writeFiles   bool
 )
 
 // return n '%v's for formatting
@@ -72,8 +77,8 @@ func debugCall(fName string, args ...string) []byte {
 
 	vals["fname"] = fName
 
-	if showExit {
-		vals["exit"] = "true"
+	if showReturn {
+		vals["return"] = "true"
 	}
 
 	var b bytes.Buffer
@@ -145,6 +150,17 @@ func annotate(file string) {
 		panic(err)
 	}
 
+	for _, imp := range f.Imports {
+		if imp.Name != nil && imp.Name.Name == importName {
+			log.Printf(`"%s" already imported. skipping %s`, importName, file)
+			return
+		}
+		if imp.Path.Value == importPath {
+			log.Printf(`"%s", already imported. skipping %s`, importPath, file)
+			return
+		}
+	}
+
 	edits := editList{packageName: f.Name.Name}
 
 	// insert our import directly after the package line
@@ -175,7 +191,16 @@ func annotate(file string) {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(string(src))
+
+	if !writeFiles {
+		fmt.Println(string(src))
+		return
+	}
+
+	err = ioutil.WriteFile(file, src, 0)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 func init() {
@@ -183,18 +208,21 @@ func init() {
 }
 
 func main() {
-	flag.BoolVar(&showExit, "exits", false, "show function exits")
+	flag.BoolVar(&showReturn, "returns", false, "show function return")
 	flag.BoolVar(&exportedOnly, "exported", false, "only annotate exported functions")
 	flag.StringVar(&prefix, "prefix", "\t", "log prefix")
 	flag.BoolVar(&showPackage, "package", false, "show package name prefix on function calls")
+	flag.BoolVar(&writeFiles, "w", false, "re-write files in place")
 	flag.Parse()
 
 	if flag.NArg() < 1 {
-		fmt.Println("missing file name")
+		flag.PrintDefaults()
 		os.Exit(1)
 	}
 
 	setup = fmt.Sprintf(setup, prefix)
 
-	annotate(flag.Arg(0))
+	for _, file := range flag.Args() {
+		annotate(file)
+	}
 }

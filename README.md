@@ -3,17 +3,17 @@
 
 gotrace annotates function calls in go source files with log statements on entry and exit.
 
-    Usage of gotrace:
-    -exits
-    		show function exits
-    -exported
-    		only annotate exported functions
-    -package
-    		show package name prefix on function calls
-    -prefix string
-    		log prefix (default "\t")
+	gotrace
+	-exported
+			only annotate exported functions
+	-package
+			show package name prefix on function calls
+	-prefix string
+			log prefix (default "\t")
+	-returns
+			show function return
+	-w	re-write files in place
 
 TODO:
-- rewrite multiple files at a time
 - name function literals
 - output filters
