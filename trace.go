@@ -45,11 +45,11 @@ var (
 	writeFiles   bool
 )
 
-// return n '%v's for formatting
+// return n '%#v's for formatting
 func formatters(n int) string {
 	f := []string{}
 	for i := 0; i < n; i++ {
-		f = append(f, "%v")
+		f = append(f, "%#v")
 	}
 	return strings.Join(f, ", ")
 }
