@@ -32,16 +32,12 @@ __log.L.Printf("[%d] {{.fname}}({{.formatters}}) \n", __traceCount, {{.args}})
 `
 )
 
-type edit struct {
-	pos int
-	val []byte
-}
-
 var (
 	funcTemplate *template.Template
 	showExit     bool
 	exportedOnly bool
 	prefix       string
+	showPackage  bool
 )
 
 // return n '%v's for formatting
@@ -88,9 +84,21 @@ func debugCall(fName string, args ...string) []byte {
 	return b.Bytes()
 }
 
-type edits []edit
+type edit struct {
+	pos int
+	val []byte
+}
 
-func (e *edits) inspect(node ast.Node) bool {
+type editList struct {
+	edits       []edit
+	packageName string
+}
+
+func (e *editList) Add(pos int, val []byte) {
+	e.edits = append(e.edits, edit{pos: pos, val: val})
+}
+
+func (e *editList) inspect(node ast.Node) bool {
 	if node == nil {
 		return false
 	}
@@ -121,15 +129,13 @@ func (e *edits) inspect(node ast.Node) bool {
 		return true
 	}
 
-	edit := edit{
-		pos: int(body.Lbrace),
-		val: debugCall(funcName, paramNames(funcType.Params)...),
+	if showPackage {
+		funcName = e.packageName + "." + funcName
 	}
 
-	*e = append(*e, edit)
+	e.Add(int(body.Lbrace), debugCall(funcName, paramNames(funcType.Params)...))
 
 	return true
-
 }
 
 func annotate(file string) {
@@ -139,10 +145,10 @@ func annotate(file string) {
 		panic(err)
 	}
 
-	var edits edits
+	edits := editList{packageName: f.Name.Name}
 
 	// insert our import directly after the package line
-	edits = append(edits, edit{pos: int(f.Name.End()), val: []byte(importStmt)})
+	edits.Add(int(f.Name.End()), []byte(importStmt))
 
 	ast.Inspect(f, edits.inspect)
 
@@ -155,7 +161,7 @@ func annotate(file string) {
 
 	var pos int
 	var out []byte
-	for _, e := range edits {
+	for _, e := range edits.edits {
 		out = append(out, data[pos:e.pos]...)
 		out = append(out, []byte(e.val)...)
 		pos = e.pos
@@ -180,6 +186,7 @@ func main() {
 	flag.BoolVar(&showExit, "exits", false, "show function exits")
 	flag.BoolVar(&exportedOnly, "exported", false, "only annotate exported functions")
 	flag.StringVar(&prefix, "prefix", "\t", "log prefix")
+	flag.BoolVar(&showPackage, "package", false, "show package name prefix on function calls")
 	flag.Parse()
 
 	if flag.NArg() < 1 {
