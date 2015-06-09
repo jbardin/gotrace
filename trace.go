@@ -125,6 +125,16 @@ func (e *editList) inspect(node ast.Node) bool {
 		funcType = n.Type
 		funcName = n.Name.Name
 
+		// prepend our receiver type
+		if n.Recv != nil && len(n.Recv.List) > 0 {
+			switch t := n.Recv.List[0].Type.(type) {
+			case *ast.StarExpr:
+				funcName = t.X.(*ast.Ident).Name + "." + funcName
+			case *ast.Ident:
+				funcName = t.Name + "." + funcName
+			}
+		}
+
 	case *ast.FuncLit:
 		body = n.Body
 		funcType = n.Type
