@@ -30,14 +30,15 @@ var _ = __log.Setup("stderr", "%s")
 
 	tmpl = `
 __traceID := __log.Next()
-__log.L.Printf("[%d] {{.fname}}({{.formatters}}) \n", __traceID, {{.args}})
+__log.L.Printf("[%d] {{.fname}}({{.formatters}}){{if .position }} [{{.position}}]{{ end }}\n", __traceID, {{.args}})
 {{ if .return }}defer func() {
-	__log.L.Printf("[%d] {{.fname}} returned\n", __traceID)
+	__log.L.Printf("[%d] {{.fname}}{{if .position}} [{{.position}}]{{ end }} returned\n", __traceID)
 }(){{ end }}
 `
 )
 
 var (
+	fset         *token.FileSet
 	funcTemplate *template.Template
 	showReturn   bool
 	exportedOnly bool
@@ -69,7 +70,7 @@ func paramNames(params *ast.FieldList) []string {
 	return p
 }
 
-func debugCall(fName string, args ...string) []byte {
+func debugCall(fName string, pos token.Pos, args ...string) []byte {
 	vals := make(map[string]string)
 	if len(args) > 0 {
 		vals["formatters"] = formatters(len(args))
@@ -80,6 +81,10 @@ func debugCall(fName string, args ...string) []byte {
 	}
 
 	vals["fname"] = fName
+
+	if pos.IsValid() {
+		vals["position"] = fset.Position(pos).String()
+	}
 
 	if showReturn {
 		vals["return"] = "true"
@@ -112,6 +117,7 @@ func (e *editList) inspect(node ast.Node) bool {
 		return false
 	}
 
+	var pos token.Pos
 	var funcType *ast.FuncType
 	var body *ast.BlockStmt
 	var funcName string
@@ -139,6 +145,7 @@ func (e *editList) inspect(node ast.Node) bool {
 		body = n.Body
 		funcType = n.Type
 		funcName = "func"
+		pos = n.Pos()
 
 	default:
 		return true
@@ -156,13 +163,13 @@ func (e *editList) inspect(node ast.Node) bool {
 		return true
 	}
 
-	e.Add(int(body.Lbrace), debugCall(funcName, paramNames(funcType.Params)...))
+	e.Add(int(body.Lbrace), debugCall(funcName, pos, paramNames(funcType.Params)...))
 
 	return true
 }
 
 func annotate(file string) {
-	fset := token.NewFileSet()
+	fset = token.NewFileSet()
 	f, err := parser.ParseFile(fset, file, nil, parser.ParseComments)
 	if err != nil {
 		log.Fatal(err)
