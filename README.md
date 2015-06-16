@@ -4,6 +4,8 @@
 gotrace annotates function calls in go source files with log statements on entry and exit.
 
 	usage: gotrace [flags] [path ...]
+	-exclude string
+			exclude any matching functions, takes precedence over filter
 	-exported
 			only annotate exported functions
 	-filter string

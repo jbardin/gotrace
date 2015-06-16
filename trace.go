@@ -45,9 +45,11 @@ var (
 	prefix       string
 	showPackage  bool
 	writeFiles   bool
-	filter       string
+	filterFlag   string
+	excludeFlag  string
 
-	filterRE *regexp.Regexp
+	filter  *regexp.Regexp
+	exclude *regexp.Regexp
 )
 
 // return n '%#v's for formatting
@@ -159,7 +161,11 @@ func (e *editList) inspect(node ast.Node) bool {
 		funcName = e.packageName + "." + funcName
 	}
 
-	if !filterRE.MatchString(funcName) {
+	if !filter.MatchString(funcName) {
+		return true
+	}
+
+	if exclude != nil && exclude.MatchString(funcName) {
 		return true
 	}
 
@@ -238,7 +244,8 @@ func main() {
 	flag.StringVar(&prefix, "prefix", "\t", "log prefix")
 	flag.BoolVar(&showPackage, "package", false, "show package name prefix on function calls")
 	flag.BoolVar(&writeFiles, "w", false, "re-write files in place")
-	flag.StringVar(&filter, "filter", ".", "only annotate functions matching the regular expression")
+	flag.StringVar(&filterFlag, "filter", ".", "only annotate functions matching the regular expression")
+	flag.StringVar(&excludeFlag, "exclude", "", "exclude any matching functions, takes precedence over filter")
 	flag.Parse()
 
 	if flag.NArg() < 1 {
@@ -249,9 +256,16 @@ func main() {
 	setup = fmt.Sprintf(setup, prefix)
 
 	var err error
-	filterRE, err = regexp.Compile(filter)
+	filter, err = regexp.Compile(filterFlag)
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	if excludeFlag != "" {
+		exclude, err = regexp.Compile(excludeFlag)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	for _, file := range flag.Args() {
