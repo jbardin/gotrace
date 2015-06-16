@@ -1,7 +1,7 @@
-## gotrace
-### tracing for go programs
+/*
 
-gotrace annotates function calls in go source files with log statements on entry and exit.
+Command gotrace annotates function entry and exit points to provide strace-like
+tracing of go programs.
 
 	usage: gotrace [flags] [path ...]
 	-exported
@@ -15,3 +15,6 @@ gotrace annotates function calls in go source files with log statements on entry
 	-returns
 			show function return
 	-w	re-write files in place
+
+*/
+package main
