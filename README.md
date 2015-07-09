@@ -18,5 +18,7 @@ gotrace annotates function calls in go source files with log statements on entry
 		log prefix (default "\t")
 	-returns
 		show function return
+	-timing
+		print function durations. Implies -returns
 	-w	re-write files in place
 

@@ -29,10 +29,12 @@ var _ = __log.Setup("stderr", "%s", %d)
 `
 
 	tmpl = `
-__traceID := __log.Next()
-__log.L.Printf("[%d] {{.fname}}(%s){{if .position }} [{{.position}}]{{ end }}\n", __traceID, __log.Format({{.args}}))
-{{ if .return }}defer func() {
-	__log.L.Printf("[%d] {{.fname}}{{if .position}} [{{.position}}]{{ end }} returned\n", __traceID)
+__traceID := __log.Next(){{if .timing}}
+__start := __log.Now(){{end}}
+__log.L.Printf("[%d] {{.fname}}(%s){{if .position}} [{{.position}}]{{ end }}\n", __traceID, __log.Format({{.args}}))
+{{if .return}}defer func() {
+	{{if .timing}}since := "in " + __log.Since(__start).String(){{else}}since := ""{{end}}
+	__log.L.Printf("[%d] {{.fname}}{{if .position}} [{{.position}}]{{ end }} returned %s\n", __traceID, since)
 }(){{ end }}
 `
 )
@@ -48,6 +50,7 @@ var (
 	filterFlag   string
 	excludeFlag  string
 	formatLength int
+	timing       bool
 
 	filter  *regexp.Regexp
 	exclude *regexp.Regexp
@@ -70,6 +73,10 @@ func debugCall(fName string, pos token.Pos, args ...string) []byte {
 		vals["args"] = strings.Join(args, ", ")
 	} else {
 		vals["args"] = ""
+	}
+
+	if timing {
+		vals["timing"] = "true"
 	}
 
 	vals["fname"] = fName
@@ -237,6 +244,7 @@ func main() {
 	flag.StringVar(&filterFlag, "filter", ".", "only annotate functions matching the regular expression")
 	flag.StringVar(&excludeFlag, "exclude", "", "exclude any matching functions, takes precedence over filter")
 	flag.IntVar(&formatLength, "formatLength", 1024, "limit the formatted length of each argumnet to 'size'")
+	flag.BoolVar(&timing, "timing", false, "print function durations. Implies -returns")
 	flag.Parse()
 
 	if flag.NArg() < 1 {
@@ -257,6 +265,10 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
+	}
+
+	if timing {
+		showReturn = true
 	}
 
 	for _, file := range flag.Args() {

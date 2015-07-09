@@ -12,6 +12,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"time"
 	"unicode/utf8"
 )
 
@@ -107,4 +108,12 @@ func Format(args ...interface{}) string {
 
 func Next() uint64 {
 	return atomic.AddUint64(&counter, 1)
+}
+
+func Now() time.Time {
+	return time.Now()
+}
+
+func Since(t time.Time) time.Duration {
+	return time.Since(t)
 }
