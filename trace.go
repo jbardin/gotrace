@@ -25,12 +25,12 @@ import __log "github.com/jbardin/gotrace/log"
 `
 
 	setup = `
-var _ = __log.Setup("stderr", "%s")
+var _ = __log.Setup("stderr", "%s", %d)
 `
 
 	tmpl = `
 __traceID := __log.Next()
-__log.L.Printf("[%d] {{.fname}}({{.formatters}}){{if .position }} [{{.position}}]{{ end }}\n", __traceID, {{.args}})
+__log.L.Printf("[%d] {{.fname}}(%s){{if .position }} [{{.position}}]{{ end }}\n", __traceID, __log.Format({{.args}}))
 {{ if .return }}defer func() {
 	__log.L.Printf("[%d] {{.fname}}{{if .position}} [{{.position}}]{{ end }} returned\n", __traceID)
 }(){{ end }}
@@ -47,19 +47,11 @@ var (
 	writeFiles   bool
 	filterFlag   string
 	excludeFlag  string
+	formatLength int
 
 	filter  *regexp.Regexp
 	exclude *regexp.Regexp
 )
-
-// return n '%#v's for formatting
-func formatters(n int) string {
-	f := []string{}
-	for i := 0; i < n; i++ {
-		f = append(f, "%#v")
-	}
-	return strings.Join(f, ", ")
-}
 
 // convert function parameters to a list of names
 func paramNames(params *ast.FieldList) []string {
@@ -75,10 +67,8 @@ func paramNames(params *ast.FieldList) []string {
 func debugCall(fName string, pos token.Pos, args ...string) []byte {
 	vals := make(map[string]string)
 	if len(args) > 0 {
-		vals["formatters"] = formatters(len(args))
 		vals["args"] = strings.Join(args, ", ")
 	} else {
-		vals["formatters"] = ""
 		vals["args"] = ""
 	}
 
@@ -201,7 +191,7 @@ func annotate(file string) {
 
 	var buf bytes.Buffer
 	if err := format.Node(&buf, fset, f); err != nil {
-		log.Fatal(err)
+		log.Fatal("format.Node", err)
 	}
 
 	data := buf.Bytes()
@@ -220,7 +210,7 @@ func annotate(file string) {
 
 	src, err := format.Source(out)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal("format.Source ", err)
 	}
 
 	if !writeFiles {
@@ -241,11 +231,12 @@ func init() {
 func main() {
 	flag.BoolVar(&showReturn, "returns", false, "show function return")
 	flag.BoolVar(&exportedOnly, "exported", false, "only annotate exported functions")
-	flag.StringVar(&prefix, "prefix", "\t", "log prefix")
+	flag.StringVar(&prefix, "prefix", "", "log prefix")
 	flag.BoolVar(&showPackage, "package", false, "show package name prefix on function calls")
 	flag.BoolVar(&writeFiles, "w", false, "re-write files in place")
 	flag.StringVar(&filterFlag, "filter", ".", "only annotate functions matching the regular expression")
 	flag.StringVar(&excludeFlag, "exclude", "", "exclude any matching functions, takes precedence over filter")
+	flag.IntVar(&formatLength, "formatLength", 1024, "limit the formatted length of each argumnet to 'size'")
 	flag.Parse()
 
 	if flag.NArg() < 1 {
@@ -253,7 +244,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	setup = fmt.Sprintf(setup, prefix)
+	setup = fmt.Sprintf(setup, prefix, formatLength)
 
 	var err error
 	filter, err = regexp.Compile(filterFlag)

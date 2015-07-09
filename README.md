@@ -5,15 +5,18 @@ gotrace annotates function calls in go source files with log statements on entry
 
 	usage: gotrace [flags] [path ...]
 	-exclude string
-			exclude any matching functions, takes precedence over filter
+		exclude any matching functions, takes precedence over filter
 	-exported
-			only annotate exported functions
+		only annotate exported functions
 	-filter string
-			only annotate functions matching the regular expression (default ".")
+		only annotate functions matching the regular expression (default ".")
+	-formatLength int
+		limit the formatted length of each argumnet to 'size' (default 1024)
 	-package
-			show package name prefix on function calls
+		show package name prefix on function calls
 	-prefix string
-			log prefix (default "\t")
+		log prefix (default "\t")
 	-returns
-			show function return
+		show function return
 	-w	re-write files in place
+
