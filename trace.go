@@ -29,7 +29,7 @@ var _ = __log.Setup("stderr", "%s", %d)
 `
 
 	tmpl = `
-__traceID := __log.Next(){{if .timing}}
+__traceID := __log.ID(){{if .timing}}
 __start := __log.Now(){{end}}
 __log.L.Printf("[%d] {{.fname}}(%s){{if .position}} [{{.position}}]{{ end }}\n", __traceID, __log.Format({{.args}}))
 {{if .return}}defer func() {

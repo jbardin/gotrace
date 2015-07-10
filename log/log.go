@@ -106,7 +106,7 @@ func Format(args ...interface{}) string {
 	return strings.Join(parts, ", ")
 }
 
-func Next() uint64 {
+func ID() uint64 {
 	return atomic.AddUint64(&counter, 1)
 }
 
