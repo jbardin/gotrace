@@ -61,7 +61,10 @@ func paramNames(params *ast.FieldList) []string {
 	var p []string
 	for _, f := range params.List {
 		for _, n := range f.Names {
-			p = append(p, n.Name)
+			// we can't use _ as a name, so ignore it
+			if n.Name != "_" {
+				p = append(p, n.Name)
+			}
 		}
 	}
 	return p
