@@ -11,7 +11,7 @@ gotrace annotates function calls in go source files with log statements on entry
 	-filter string
 		only annotate functions matching the regular expression (default ".")
 	-formatLength int
-		limit the formatted length of each argumnet to 'size' (default 1024)
+		limit the formatted length of each argument to 'size' (default 1024)
 	-package
 		show package name prefix on function calls
 	-prefix string
