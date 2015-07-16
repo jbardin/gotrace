@@ -15,10 +15,15 @@ gotrace annotates function calls in go source files with log statements on entry
 	-package
 		show package name prefix on function calls
 	-prefix string
-		log prefix (default "\t")
+		log prefix
 	-returns
 		show function return
 	-timing
 		print function durations. Implies -returns
 	-w	re-write files in place
 
+#### Example
+
+    # Insert gotrace logging statements into all *.go files in the current directory
+	# Make sure all files are saved in version control, as this rewrites them in-place!
+    gotrace -w -returns *.go
