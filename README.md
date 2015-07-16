@@ -24,6 +24,8 @@ gotrace annotates function calls in go source files with log statements on entry
 
 #### Example
 
+    # gotrace operates directly on go source files.
     # Insert gotrace logging statements into all *.go files in the current directory
 	# Make sure all files are saved in version control, as this rewrites them in-place!
-    gotrace -w -returns *.go
+
+    $ gotrace -w -returns ./*.go

@@ -29,14 +29,16 @@ var _ = __log.Setup("stderr", "%s", %d)
 `
 
 	tmpl = `
-__traceID := __log.ID(){{if .timing}}
-__start := __log.Now(){{end}}
+__traceID := __log.ID()
 __log.L.Printf("[%d] {{.fname}}(%s){{if .position}} [{{.position}}]{{ end }}\n", __traceID, __log.Format({{.args}}))
+{{if .timing}}__start := __log.Now(){{end}}
 {{if .return}}defer func() {
 	{{if .timing}}since := "in " + __log.Since(__start).String(){{else}}since := ""{{end}}
 	__log.L.Printf("[%d] {{.fname}}{{if .position}} [{{.position}}]{{ end }} returned %s\n", __traceID, since)
 }(){{ end }}
 `
+
+	ErrAlreadyImported = fmt.Errorf("%s already imported", importPath)
 )
 
 var (
@@ -174,21 +176,49 @@ func (e *editList) inspect(node ast.Node) bool {
 	return true
 }
 
-func annotate(file string) {
-	fset = token.NewFileSet()
-	f, err := parser.ParseFile(fset, file, nil, parser.ParseComments)
+func annotateFile(file string) {
+	orig, err := ioutil.ReadFile(file)
 	if err != nil {
 		log.Fatal(err)
 	}
 
+	src, err := annotate(orig)
+	if err != nil {
+		log.Printf("%s: skipping %s", err, file)
+		return
+	}
+
+	if !writeFiles {
+		fmt.Println(string(src))
+		return
+	}
+
+	err = ioutil.WriteFile(file, src, 0)
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+
+func annotate(orig []byte) ([]byte, error) {
+	// we need to make sure the source is formmated to insert the new code in
+	// the expected place
+	orig, err := format.Source(orig)
+	if err != nil {
+		return orig, err
+	}
+
+	fset = token.NewFileSet()
+	f, err := parser.ParseFile(fset, "", orig, parser.ParseComments)
+	if err != nil {
+		return nil, err
+	}
+
 	for _, imp := range f.Imports {
 		if imp.Name != nil && imp.Name.Name == importName {
-			log.Printf(`"%s" already imported. skipping %s`, importName, file)
-			return
+			return nil, ErrAlreadyImported
 		}
 		if imp.Path.Value == importPath {
-			log.Printf(`"%s", already imported. skipping %s`, importPath, file)
-			return
+			return nil, ErrAlreadyImported
 		}
 	}
 
@@ -201,7 +231,7 @@ func annotate(file string) {
 
 	var buf bytes.Buffer
 	if err := format.Node(&buf, fset, f); err != nil {
-		log.Fatal("format.Node", err)
+		return nil, fmt.Errorf("format.Node: %s", err)
 	}
 
 	data := buf.Bytes()
@@ -220,18 +250,10 @@ func annotate(file string) {
 
 	src, err := format.Source(out)
 	if err != nil {
-		log.Fatal("format.Source ", err)
+		return out, fmt.Errorf("format.Source: %s", err)
 	}
 
-	if !writeFiles {
-		fmt.Println(string(src))
-		return
-	}
-
-	err = ioutil.WriteFile(file, src, 0)
-	if err != nil {
-		log.Fatal(err)
-	}
+	return src, nil
 }
 
 func init() {
@@ -275,6 +297,6 @@ func main() {
 	}
 
 	for _, file := range flag.Args() {
-		annotate(file)
+		annotateFile(file)
 	}
 }
