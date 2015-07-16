@@ -182,7 +182,7 @@ func annotateFile(file string) {
 		log.Fatal(err)
 	}
 
-	src, err := annotate(orig)
+	src, err := annotate(file, orig)
 	if err != nil {
 		log.Printf("%s: skipping %s", err, file)
 		return
@@ -199,7 +199,7 @@ func annotateFile(file string) {
 	}
 }
 
-func annotate(orig []byte) ([]byte, error) {
+func annotate(filename string, orig []byte) ([]byte, error) {
 	// we need to make sure the source is formmated to insert the new code in
 	// the expected place
 	orig, err := format.Source(orig)
@@ -208,7 +208,7 @@ func annotate(orig []byte) ([]byte, error) {
 	}
 
 	fset = token.NewFileSet()
-	f, err := parser.ParseFile(fset, "", orig, parser.ParseComments)
+	f, err := parser.ParseFile(fset, filename, orig, parser.ParseComments)
 	if err != nil {
 		return nil, err
 	}

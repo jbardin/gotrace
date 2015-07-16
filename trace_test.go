@@ -37,17 +37,43 @@ func testFunc3(a ...interface{}) bool {
 }`)
 
 	testSrc4 = []byte(`package none
-	func testFunc4(a,   b) {return false}`)
+	func testFunc4(a,   b int) {return false}`)
+
+	testSrc5 = []byte(`package none
+func testFunc5(a, b int) {
+	func(a int) {
+		a = b
+	}(a)
+}`)
 )
 
 func annotateTest(source []byte, t *testing.T) []byte {
-	processed, err := annotate(source)
+	processed, err := annotate("test.go", source)
 	if err != nil {
 		fmt.Println(string(processed))
 		t.Fatal(err)
 	}
 	t.Log(string(processed))
 	return processed
+}
+
+func returnsOn() func() {
+	prev := showReturn
+	showReturn = true
+	return func() {
+		showReturn = prev
+	}
+}
+
+func timingOn() func() {
+	prevT := timing
+	timing = true
+	prevR := showReturn
+	showReturn = true
+	return func() {
+		timing = prevT
+		showReturn = prevR
+	}
 }
 
 // TODO: Use go/types to further check the output, since we don't execute the
@@ -76,23 +102,16 @@ func TestUnFmted(t *testing.T) {
 
 // test output with return logging
 func TestReturns(t *testing.T) {
-	prev := showReturn
-	defer func() {
-		showReturn = prev
-	}()
-	showReturn = true
+	defer returnsOn()()
 	annotateTest(testSrc1, t)
 }
 
 func TestTiming(t *testing.T) {
-	prevR := showReturn
-	prevT := timing
-	defer func() {
-		timing = prevT
-		showReturn = prevR
-	}()
-	timing = true
-	showReturn = true
-
+	defer timingOn()()
 	annotateTest(testSrc4, t)
+}
+
+func TestEmbedded(t *testing.T) {
+	defer timingOn()()
+	annotateTest(testSrc5, t)
 }
